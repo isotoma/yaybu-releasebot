@@ -1,0 +1,10 @@
+.Python
+bin/
+http.log
+include/
+lib/
+state.sqlite
+state.sqlite-shm
+state.sqlite-wal
+templates/
+twistd.log
