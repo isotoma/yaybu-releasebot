@@ -113,6 +113,10 @@ Become the ``buildbot_slave`` user::
 
     sudo su - buildbot_slave
 
+We will be using Xcode tools as the ``buildbot_slave`` user so need to agree to its T&C::
+
+    xcodebuild -license
+
 Clone this repository::
 
     git clone git://github.com/isotoma/yaybu-releasebot ~/ReleaseBot
