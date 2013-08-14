@@ -4,7 +4,7 @@ import os
 from twisted.application import service
 from buildslave.bot import BuildSlave
 
-basedir = r'/Users/john/yaybu-release/slave'
+basedir = r'.'
 rotateLength = 10000000
 maxRotatedFiles = 10
 

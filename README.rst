@@ -38,7 +38,7 @@ Become the ``buildbot_master`` user::
 
 Clone this repository::
 
-    git clone git://github.com/isotoma/yaybu_releasebot ~/ReleaseBot
+    git clone git://github.com/isotoma/yaybu-releasebot ~/ReleaseBot
 
 Create a virtualenv::
 
@@ -46,10 +46,16 @@ Create a virtualenv::
     tar xvfz virtualenv-1.10.1.tar.gz
     cd virtualenv-1.10.1
     python virtualenv.py /Users/buildbot_master/Virtualenv
+    cd ..
+    rm -rf virtualenv-*
 
 Install buildbot and its dependencies::
 
     ~/Virtualenv/bin/pip install -r ~/ReleaseBot/master/requirements.txt
+
+Create the sqlite database::
+
+    ~/Virtualenv/bin/buildbot upgrade-master ~/ReleaseBot/master/
 
 Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaemons/buildbot_master.plist``::
 
@@ -58,9 +64,9 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
     <plist version="1.0">
     <dict>
         <key>StandardOutPath</key>
-        <string>twistd.log</string>
+        <string>twistd.stdout.log</string>
         <key>StandardErrorPath</key>
-        <string>twistd-err.log</string>
+        <string>twistd.stderr.log</string>
         <key>EnvironmentVariables</key>
         <dict>
                 <key>PATH</key>
@@ -74,7 +80,7 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
                 <false/>
         </dict>
         <key>Label</key>
-        <string>net.buildbot.master</string>
+        <string>com.yaybu.releasebot.master</string>
         <key>ProgramArguments</key>
         <array>
                 <string>twistd</string>
@@ -91,6 +97,14 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
     </dict>
     </plist>
 
+Start the service::
+
+    sudo launchctl load -F /Library/LaunchDaemons/buildbot_master.plist
+
+There should be a buildbot visible at::
+
+    http://hostname:8080/
+
 
 Build slave environment
 =======================
@@ -101,7 +115,7 @@ Become the ``buildbot_slave`` user::
 
 Clone this repository::
 
-    git clone git://github.com/isotoma/yaybu_releasebot ~/ReleaseBot
+    git clone git://github.com/isotoma/yaybu-releasebot ~/ReleaseBot
 
 Create a virtualenv::
 
@@ -109,6 +123,8 @@ Create a virtualenv::
     tar xvfz virtualenv-1.10.1.tar.gz
     cd virtualenv-1.10.1
     python virtualenv.py /Users/buildbot_slave/Virtualenv
+    cd ..
+    rm -rf virtualenv-*
 
 Install buildbot and its dependencies::
 
@@ -121,9 +137,9 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
     <plist version="1.0">
     <dict>
         <key>StandardOutPath</key>
-        <string>twistd.log</string>
+        <string>twistd.stdout.log</string>
         <key>StandardErrorPath</key>
-        <string>twistd-err.log</string>
+        <string>twistd.stderr.log</string>
         <key>EnvironmentVariables</key>
         <dict>
                 <key>PATH</key>
@@ -137,7 +153,7 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
                 <false/>
         </dict>
         <key>Label</key>
-        <string>net.buildbot.slave.osx</string>
+        <string>yaybu.com.releasebot.slave.osx</string>
         <key>ProgramArguments</key>
         <array>
                 <string>twistd</string>
@@ -153,4 +169,21 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
         <string>/Users/buildbot_slave/ReleaseBot/slave</string>
     </dict>
     </plist>
+
+Start it::
+
+    sudo launchctl load -F /Library/LaunchDaemons/buildbot_slave_osx.plist
+
+Slave should show as connected at this URL::
+
+    http://hostname:8080/buildslaves
+
+
+Final checks
+============
+
+First of all, reboot and make sure everything comes up::
+
+    sudo reboot
+
 
