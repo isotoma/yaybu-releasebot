@@ -16,10 +16,29 @@ Build environment
  * Install XCode command line tools (via preferences pane)
 
 
+Users accounts
+==============
+
+The following accounts are needed::
+
+  * ``buildbot_master``
+  * ``buildbot_slave``
+
+They are hidden from the login window (for cosmetic reasons)::
+
+    sudo defaults write /Library/Preferences/com.apple.loginwindow HiddenUsersList -array-add buildbot_master buildbot_slave
+
+
 Build master environment
 ========================
 
-You will need a ``buildbot_master`` account. The following shell commands assume you are that user.
+Become the ``buildbot_master`` user::
+
+    sudo su - buildbot_master
+
+Clone this repository::
+
+    git clone git://github.com/isotoma/yaybu_releasebot ~/ReleaseBot
 
 Create a virtualenv::
 
@@ -30,7 +49,7 @@ Create a virtualenv::
 
 Install buildbot and its dependencies::
 
-    ~/Virtualenv/bin/pip install -r master-requirements.txt
+    ~/Virtualenv/bin/pip install -r ~/ReleaseBot/master/requirements.txt
 
 Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaemons/buildbot_master.plist``::
 
@@ -68,7 +87,7 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
         <key>UserName</key>
         <string>buildbot_master</string>
         <key>WorkingDirectory</key>
-        <string>/Users/buildbot_master/Instance</string>
+        <string>/Users/buildbot_master/ReleaseBot/master</string>
     </dict>
     </plist>
 
@@ -76,7 +95,13 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
 Build slave environment
 =======================
 
-You will need a ``buildbot_slave`` account. The following shell commands assume you are that user.
+Become the ``buildbot_slave`` user::
+
+    sudo su - buildbot_slave
+
+Clone this repository::
+
+    git clone git://github.com/isotoma/yaybu_releasebot ~/ReleaseBot
 
 Create a virtualenv::
 
@@ -87,7 +112,7 @@ Create a virtualenv::
 
 Install buildbot and its dependencies::
 
-    ~/Virtualenv/bin/pip install -r slave-requirements.txt
+    ~/Virtualenv/bin/pip install -r ~/ReleaseBot/slave/requirements.txt
 
 Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaemons/buildbot_slave_osx.plist``::
 
@@ -125,7 +150,7 @@ Create a Launchd plist for it (owned by ``root:wheel``) at ``/Library/LaunchDaem
         <key>UserName</key>
         <string>buildbot_slave</string>
         <key>WorkingDirectory</key>
-        <string>/Users/buildbot_slave/Instance</string>
+        <string>/Users/buildbot_slave/ReleaseBot/slave</string>
     </dict>
     </plist>
 
