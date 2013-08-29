@@ -38,7 +38,7 @@ Become the ``buildbot_master`` user::
 
 Clone this repository::
 
-    git clone git://github.com/isotoma/yaybu-releasebot ~/ReleaseBot
+    git clone git://github.com/yaybu/yaybu-releasebot ~/ReleaseBot
 
 Create a virtualenv::
 
@@ -119,7 +119,7 @@ We will be using Xcode tools as the ``buildbot_slave`` user so need to agree to 
 
 Clone this repository::
 
-    git clone git://github.com/isotoma/yaybu-releasebot ~/ReleaseBot
+    git clone git://github.com/yaybu/yaybu-releasebot ~/ReleaseBot
 
 Create a virtualenv::
 
