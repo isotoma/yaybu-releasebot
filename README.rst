@@ -183,11 +183,65 @@ Slave should show as connected at this URL::
     http://hostname:8080/buildslaves
 
 
+Setting up a Windows 7 slave (WIP)
+==================================
+
+First part of setup was done as the Administrator user (the user that is created when setting up Windows 7 from scratch).
+
+Follow the instructions in the Yaybu.exe README (https://github.com/yaybu/yaybu.exe) up to (and including) installing the requirements.
+
+Install pywin32 using the binary installer.
+
+Install buildbot_slave::
+
+    C:\Python27\python -m pip install buildbot_slave
+    C:\Python27\Scripts\buildslave --version
+
+Create a new slave::
+
+    mkdir C:\ReleaseBot\
+    mkdir C:\ReleaseBot\win7_slave
+    C:\Python27\Scripts\buildslave -r C:\ReleaseBot\win7_slave cherrytree:9989 win7_slave pass
+
+Test slave works::
+
+    C:\Python27\Scripts\buildslave start .
+
+Should see it connect in buildbot web UI.
+
+Now to install the buildbot slave Windows service.
+
+Create an account for the buildbot slave - ``buildbot_slave`` is ideal. It shouldn't be an adminstrator. But it does need to have the SeServiceLoginRight permission, which you can grant with ntrights from the Win2k3 resource kit. NOTE: Even when an adminstrator, you need to run this with an Administrator terminal or the command will fail::
+
+    ntrights +r SeServiceLogonRight -u buildbot_slave
+
+This next bit is a bit fiddly as it needs to create some registry keys that it doesnt have permission to \o/.
+
+Create the service::
+
+    C:\Python27\Scripts\buildbot_serice.py --user .\buildbot_spave --password password --startup auto install
+
+Start the service. It will fail to start::
+
+    net start buildbot
+
+Using regedit find ``HKEY_LOCAL_MACHINE\SystemCurrentControlSet\services\Buildbot`` and give the ``buildbot_slave`` user ``Full Control`` in the permissions context menu.
+
+Again, try to start the service. It will fail to start once more::
+
+    net start buildbot
+
+Refresh regedit (with F5) and you should now see a ``Parameters`` folder within the ``Buildbot`` key. It will be empty. Add a string key named ``directories`` and set it to ``C:\ReleaseBot\win7_slave``.
+
+Now try and start it again. This time it should start, and you should see it connect in the buildbot web ui::
+
+    net start buildbot
+
+
 Final checks
 ============
 
 First of all, reboot and make sure everything comes up::
 
     sudo reboot
-
 
