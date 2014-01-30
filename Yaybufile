@@ -1,0 +1,153 @@
+
+yaybu:
+  searchpath:
+    - .
+
+local:
+  master:
+    fqdn: localhost
+  slave:
+    fqdn: localhost
+
+
+new Provisioner as master:
+  server:
+    fqdn: {{ local.master.fqdn }}
+
+  resources:
+    - Group:
+        name: buildbot_master
+
+    - User:
+        name: buildbot_master
+        group: buildbot_master
+
+    - Directory:
+        name: /var/local/releasebot_master
+        owner: buildbot_master
+        group: buildbot_master
+
+    - Execute:
+        name: create_virtualenv
+        user: buildbot_master
+        commands:
+          - curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.10.1.tar.gz
+          - tar xvfz virtualenv-1.10.1.tar.gz
+          - python virtualenv-1.10.1/virtualenv.py /var/local/releasebot_master
+          - rm -rf virtualenv-1.10.1
+        creates: /var/local/releasebot_master/bin/python
+        cwd: /tmp
+
+    - File:
+        name: /var/local/releasebot_master/requirements.txt
+        static: master/requirements.txt
+
+    - Execute:
+        name: pip-install
+        commands: /var/local/releasebot_master/bin/pip install -r /var/local/releasebot_master/requirements.txt
+        user: buildbot_master
+        policy:
+          execute:
+            - when: apply
+              on: File[/var/local/releasebot_master/requirements.txt]
+
+    - Directory:
+        name: /var/local/releasebot_master/instance
+        owner: buildbot_master
+        group: buildbot_master
+
+    - Execute:
+        name: create-buildmaster
+        command: /var/local/releasebot_master/bin/buildbot create-master /var/local/releasebot_master/instance
+        creates: /var/local/releasebot_master/instance/buildbot.tac
+
+    - File:
+        name: /var/local/releasebot_master/instance/master.cfg
+        static: master/master.cfg
+
+    - Execute:
+        name: buildbot-upgrade
+        commands: /var/local/releasebot_master/bin/buildbot upgrade-master /var/local/releasebot_master/instance
+        user: buildbot_master
+        policy:
+          execute:
+            - when: execute
+              on: Execute[pip-install]
+
+    - File:
+        name: /etc/init/releasebot_master.conf
+        static: master/upstart.conf
+
+    - Execute:
+        name: bounce-master
+        commands:
+          - stop releasebot_master || true
+          - start releasebot_master
+
+
+new Provisioner as slave:
+  server:
+    fqdn: {{ local.slave.fqdn }}
+
+  resources:
+    - Group:
+        name: buildbot_slave
+
+    - User:
+        name: buildbot_slave
+        group: buildbot_slave
+
+    - Directory:
+        name: /var/local/releasebot_slave
+        owner: buildbot_slave
+        group: buildbot_slave
+
+    - Execute:
+        name: create_virtualenv
+        user: buildbot_slave
+        commands:
+          - curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.10.1.tar.gz
+          - tar xvfz virtualenv-1.10.1.tar.gz
+          - python virtualenv-1.10.1/virtualenv.py /var/local/releasebot_slave
+          - rm -rf virtualenv-1.10.1
+        creates: /var/local/releasebot_slave/bin/python
+        cwd: /tmp
+
+    - File:
+        name: /var/local/releasebot_slave/requirements.txt
+        static: slave/requirements.txt
+
+    - Directory:
+        name: /var/local/releasebot_slave/instance
+
+    - File:
+        name: /var/local/releasebot_slave/instance/master.cfg
+        static: master/master.cfg
+
+    - Execute:
+        name: pip-install
+        command: /var/local/releasebot_slave/bin/pip install -r /var/local/releasebot_slave/requirements.txt
+        user: buildbot_slave
+        policy:
+          execute:
+            - when: apply
+              on: File[/var/local/releasebot_slave/requirements.txt]
+
+    - Execute:
+        name: create-buildslave
+        command: /var/local/releasebot_slave/bin/buildslave -r /var/local/releasebot_slave/instance {{ local.master.fqdn }}:9989 deb_slave pass
+        creates: /var/local/releasebot_slave/instance/buildbot.tac
+
+    - File:
+        name: /etc/init/releasebot_slave.conf
+        static: slave/upstart.conf
+
+    - Execute:
+        name: bounce-slave
+        commands:
+          - stop releasebot_slave || true
+          - start releasebot_slave
+        policy:
+          execute:
+           - when: apply
+             on: File[/etc/init/releasebot_slave.conf]

@@ -8,3 +8,4 @@ state.sqlite-shm
 state.sqlite-wal
 templates/
 twistd.log
+local.yay
