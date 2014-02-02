@@ -40,11 +40,11 @@ new Provisioner as master:
 
     - File:
         name: /var/local/releasebot_master/requirements.txt
-        static: master/requirements.txt
+        source: master/requirements.txt
 
     - Execute:
         name: pip-install
-        commands: /var/local/releasebot_master/bin/pip install -r /var/local/releasebot_master/requirements.txt
+        command: /var/local/releasebot_master/bin/pip install -r /var/local/releasebot_master/requirements.txt
         user: buildbot_master
         policy:
           execute:
@@ -63,11 +63,22 @@ new Provisioner as master:
 
     - File:
         name: /var/local/releasebot_master/instance/master.cfg
-        static: master/master.cfg
+        source: master/master.cfg
+
+    - Execute:
+        name: buildbot-check
+        command: /var/local/releasebot_master/bin/buildbot check /var/local/releasebot_master/instance
+        user: buildbot_master
+        policy:
+          execute:
+            - when: execute
+              on: Execute[pip-install]
+            - when: apply
+              on: File[/var/local/releasebot_master/instance/master.cfg]
 
     - Execute:
         name: buildbot-upgrade
-        commands: /var/local/releasebot_master/bin/buildbot upgrade-master /var/local/releasebot_master/instance
+        command: /var/local/releasebot_master/bin/buildbot upgrade-master /var/local/releasebot_master/instance
         user: buildbot_master
         policy:
           execute:
@@ -76,14 +87,21 @@ new Provisioner as master:
 
     - File:
         name: /etc/init/releasebot_master.conf
-        static: master/upstart.conf
+        source: master/upstart.conf
 
     - Execute:
         name: bounce-master
         commands:
           - stop releasebot_master || true
           - start releasebot_master
-
+        policy:
+          execute:
+           - when: execute
+             on: Execute[pip-install]
+           - when: apply
+             on: File[/var/local/releasebot_master/instance/master.cfg]
+           - when: apply
+             on: File[/etc/init/releasebot_master.conf]
 
 new Provisioner as slave:
   server:
@@ -115,14 +133,7 @@ new Provisioner as slave:
 
     - File:
         name: /var/local/releasebot_slave/requirements.txt
-        static: slave/requirements.txt
-
-    - Directory:
-        name: /var/local/releasebot_slave/instance
-
-    - File:
-        name: /var/local/releasebot_slave/instance/master.cfg
-        static: master/master.cfg
+        source: slave/requirements.txt
 
     - Execute:
         name: pip-install
@@ -133,14 +144,20 @@ new Provisioner as slave:
             - when: apply
               on: File[/var/local/releasebot_slave/requirements.txt]
 
+    - Directory:
+        name: /var/local/releasebot_slave/instance
+        owner: buildbot_slave
+        group: buildbot_slave
+
     - Execute:
         name: create-buildslave
         command: /var/local/releasebot_slave/bin/buildslave -r /var/local/releasebot_slave/instance {{ local.master.fqdn }}:9989 deb_slave pass
         creates: /var/local/releasebot_slave/instance/buildbot.tac
+        user: buildbot_slave
 
     - File:
         name: /etc/init/releasebot_slave.conf
-        static: slave/upstart.conf
+        source: slave/upstart.conf
 
     - Execute:
         name: bounce-slave
@@ -149,5 +166,7 @@ new Provisioner as slave:
           - start releasebot_slave
         policy:
           execute:
+           - when: execute
+             on: Execute[pip-install]
            - when: apply
              on: File[/etc/init/releasebot_slave.conf]
