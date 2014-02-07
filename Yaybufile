@@ -259,7 +259,8 @@ builder_wine:
         user: {{ builder_wine.user }}
 
     - File:
-        name: {{ builder_wine.c_drive }}/Python27/Lib/distutils/distutils.cfg
+        name: {{ builder_wine.home }}/pydistutils.cfg
+        # name: {{ builder_wine.c_drive }}/Python27/Lib/distutils/distutils.cfg
         source: builder_wine/distutils.cfg
         owner: {{ builder_wine.user }}
 
