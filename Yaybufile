@@ -3,17 +3,8 @@ yaybu:
   searchpath:
     - .
 
-local:
-  master:
-    fqdn: localhost
-  slave:
-    fqdn: localhost
 
-
-new Provisioner as master:
-  server:
-    fqdn: {{ local.master.fqdn }}
-
+master:
   resources:
     - Group:
         name: buildbot_master
@@ -28,7 +19,7 @@ new Provisioner as master:
         group: buildbot_master
 
     - Execute:
-        name: create_virtualenv
+        name: create_virtualenv_master
         user: buildbot_master
         commands:
           - curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.10.1.tar.gz
@@ -43,7 +34,7 @@ new Provisioner as master:
         source: master/requirements.txt
 
     - Execute:
-        name: pip-install
+        name: pip-install-master
         command: /var/local/releasebot_master/bin/pip install -r /var/local/releasebot_master/requirements.txt
         user: buildbot_master
         policy:
@@ -83,7 +74,7 @@ new Provisioner as master:
         policy:
           execute:
             - when: execute
-              on: Execute[pip-install]
+              on: Execute[pip-install-master]
 
     - File:
         name: /etc/init/releasebot_master.conf
@@ -103,10 +94,7 @@ new Provisioner as master:
            - when: apply
              on: File[/etc/init/releasebot_master.conf]
 
-new Provisioner as slave:
-  server:
-    fqdn: {{ local.slave.fqdn }}
-
+builder_deb:
   resources:
     - Group:
         name: buildbot_slave
@@ -151,7 +139,7 @@ new Provisioner as slave:
 
     - Execute:
         name: create-buildslave
-        command: /var/local/releasebot_slave/bin/buildslave -r /var/local/releasebot_slave/instance {{ local.master.fqdn }}:9989 deb_slave pass
+        command: /var/local/releasebot_slave/bin/buildslave -r /var/local/releasebot_slave/instance localhost:9989 deb_slave pass
         creates: /var/local/releasebot_slave/instance/buildbot.tac
         user: buildbot_slave
 
@@ -170,3 +158,180 @@ new Provisioner as slave:
              on: Execute[pip-install]
            - when: apply
              on: File[/etc/init/releasebot_slave.conf]
+
+
+builder_wine:
+  user: ubuntu
+  c_drive: /home/ubuntu/.wine/drive_c
+  home: /home/ubuntu/.wine/drive_c/users/ubuntu
+  wheels: /home/ubuntu/.wine/drive_c/wheels
+  src: /home/ubuntu/src
+
+  resources:
+    - Package:
+        name: python-software-properties
+
+    - Execute:
+        name: add-apt-repository-ubuntu-wine
+        commands:
+          - add-apt-repository -y ppa:ubuntu-wine/ppa
+          - apt-get update
+        creates: /etc/apt/sources.list.d/ubuntu-wine-ppa-precise.list
+
+    # FIXME: This needs a guard condition
+    #- Execute:
+    #    name: agree
+    #    command: echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+
+    - Package:
+        - name: wine1.6
+        - name: xvfb
+        - name: p7zip-full
+        - name: curl
+
+    - Directory:
+        name: {{ builder_wine.src }}
+        owner: {{ builder_wine.user }}
+
+    - Directory:
+        name: {{ builder_wine.wheels }}
+        owner: {{ builder_wine.user }}
+
+    - Execute:
+        name: download-python27
+        command: curl -o {{ builder_wine.src }}/python-2.7.5.msi http://www.python.org/ftp/python/2.7.5/python-2.7.5.msi
+        creates: {{ builder_wine.src }}/python-2.7.5.msi
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: install-python
+        command: wine msiexec /i {{ builder_wine.src }}/python-2.7.5.msi /qn TARGETDIR=C:\\Python27 ALLUSERS=1
+        creates: {{ builder_wine.c_drive }}/Python27/python.exe
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: download-pgit
+        command: curl -o {{ builder_wine.src }}/PortableGit-1.8.5.2-preview20131230.7z https://msysgit.googlecode.com/files/PortableGit-1.8.5.2-preview20131230.7z
+        creates: {{ builder_wine.src }}/PortableGit-1.8.5.2-preview20131230.7z
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: unpack-git
+        command: 7z x -o{{ builder_wine.c_drive }}/Git {{ builder_wine.src }}/PortableGit-1.8.5.2-preview20131230.7z
+        creates: {{ builder_wine.c_drive }}/Git/bin/git.exe
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: download-mingw
+        command: curl -L -o {{ builder_wine.src }}/mingw-get-0.6.2-mingw32-beta-20131004-1-bin.zip http://sourceforge.net/projects/mingw/files/Installer/mingw-get/mingw-get-0.6.2-beta-20131004-1/mingw-get-0.6.2-mingw32-beta-20131004-1-bin.zip/download
+        creates: {{ builder_wine.src }}/mingw-get-0.6.2-mingw32-beta-20131004-1-bin.zip
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: unpack-mingw
+        command: unzip -d {{ builder_wine.c_drive }}/MinGW {{ builder_wine.src }}/mingw-get-0.6.2-mingw32-beta-20131004-1-bin.zip
+        creates: {{ builder_wine.c_drive }}/MinGW/bin/mingw-get.exe
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: install-gcc
+        command: wine {{ builder_wine.c_drive }}/MinGW/bin/mingw-get.exe install gcc mingw-utils
+        creates: {{ builder_wine.c_drive }}/MinGW/bin/gcc.exe
+        user: {{ builder_wine.user }}
+
+    # FIXME: Weird escaping...
+    - Execute:
+        name: force-wine-path
+        command: wine reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path /d "C:/Python27/Scripts;C:/Python27;C:/MinGW/bin;C:/Git/bin;C:/windows/system32;C:/windows;C:/windows/system32/Wbem" /f
+        user: {{ builder_wine.user }}
+        unless: wine python -V
+
+    - Execute:
+        name: python27-pexports
+        command: wine pexports c:\\windows\\system32\\python27.dll > {{ builder_wine.c_drive }}/Python27/libs/python27.def
+        creates: {{ builder_wine.c_drive }}/Python27/libs/python27.def
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: python27-dlltool
+        command: wine dlltool -C -d C:\\Python27\\libs\\python27.def -l C:\\Python27\\libs\\libpython27.a
+        creates: {{ builder_wine.c_drive }}/Python27/libs/libpython27.a
+        user: {{ builder_wine.user }}
+
+    - File:
+        name: {{ builder_wine.c_drive }}/Python27/Lib/distutils/distutils.cfg
+        source: builder_wine/distutils.cfg
+        owner: {{ builder_wine.user }}
+
+    - File:
+        name: {{ builder_wine.c_drive }}/Python27/Lib/distutils/cygwinccompiler.py
+        source: builder_wine/cygwinccompiler.py
+        owner: {{ builder_wine.user }}
+
+    - File:
+        name: {{ builder_wine.c_drive }}/Python27/Lib/site.py
+        source: builder_wine/site.py
+        owner: {{ builder_wine.user }}
+
+    - File:
+        name: {{ builder_wine.src }}/get-pip.py
+        source: builder_wine/get-pip.py
+        owner: {{ builder_wine.user }}
+
+    - Execute:
+        name: get-pip.py
+        command: wine python {{ builder_wine.src }}/get-pip.py
+        user: {{ builder_wine.user }}
+        creates: {{ builder_wine.c_drive }}/Python27/Scripts/pip.exe
+
+    - Execute:
+        name: pip-install-virtualenv
+        command: wine python -m pip install virtualenv
+        user: {{ builder_wine.user }}
+        creates: {{ builder_wine.c_drive }}/Python27/Scripts/virtualenv.exe
+
+    - Execute:
+        name: pip-install-wheel
+        command: wine python -m pip install wheel
+        user: {{ builder_wine.user }}
+        creates: {{ builder_wine.c_drive }}/Python27/Scripts/wheel.exe
+
+    - Execute:
+        name: download-py2exe
+        command: curl -L -o {{ builder_wine.src }}/py2exe-0.6.9.win32-py2.7.exe http://sourceforge.net/projects/py2exe/files/py2exe/0.6.9/py2exe-0.6.9.win32-py2.7.exe/download
+        creates: {{ builder_wine.src }}/py2exe-0.6.9.win32-py2.7.exe
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: wheel-convert-py2exe
+        command: wine python -m wheel convert -d {{ builder_wine.wheels }} {{ builder_wine.src }}/py2exe-0.6.9.win32-py2.7.exe
+        user: {{ builder_wine.user }}
+        creates: {{ builder_wine.wheels }}/py2exe-0.6.9-cp27-none-win32.whl
+
+    - Execute:
+        name: download-pycrypto
+        command: curl -o {{ builder_wine.src }}/pycrypto-2.6.win32-py2.7.exe http://www.voidspace.org.uk/downloads/pycrypto26/pycrypto-2.6.win32-py2.7.exe
+        creates: {{ builder_wine.src }}/pycrypto-2.6.win32-py2.7.exe
+        user: {{ builder_wine.user }}
+
+    - Execute:
+        name: wheel-convert-pycrypto
+        command: wine python -m wheel convert -d {{ builder_wine.wheels }} {{ builder_wine.src }}/pycrypto-2.6.win32-py2.7.exe
+        user: {{ builder_wine.user }}
+        creates: {{ builder_wine.wheels }}/pycrypto-2.6-cp27-none-win32.whl
+
+    - File:
+        name: {{ builder_wine.home }}/pip/pip.ini
+        source: builder_wine/pip.ini
+        owner: {{ builder_wine.user }}
+
+
+new Provisioner as releasebox1:
+  server:
+    fqdn: 192.168.244.131
+    user: ubuntu
+    password: password
+
+  extend resources: {{ master.resources }}
+  extend resources: {{ builder_deb.resources }}
+  extend resources: {{ builder_wine.resources }}
