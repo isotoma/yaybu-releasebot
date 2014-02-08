@@ -266,7 +266,18 @@ builder_wine:
         creates: {{ builder_wine.c_drive }}/MinGW/bin/gcc.exe
         user: {{ builder_wine.user }}
 
-    # FIXME: Weird escaping...
+    # pycrypto 2.6.1 workaround
+    # https://github.com/kpdyer/fteproxy/issues/73
+    # https://bugs.launchpad.net/pycrypto/+bug/1250278
+    # The offending line in setup.py is gone in master, but no release with that fix
+    - Execute:
+        name: patch-headers
+        commands:
+          - sed -i {{ builder_wine.c_drive }}/MinGW/include/io.h -e 's/off64_t/_off64_t/g'
+          - sed -i {{ builder_wine.c_drive }}/MinGW/include/unistd.h -e 's/off_t/_off_t/g'
+        touch: {{ builder_wine.c_drive }}/MinGW/patched-headers
+        user: {{ builder_wine.user }}
+
     - Execute:
         name: force-wine-path
         command: wine reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Environment" /v Path /d "C:/Python27/Scripts;C:/Python27;C:/MinGW/bin;C:/Git/bin;C:/windows/system32;C:/windows;C:/windows/system32/Wbem" /f
@@ -335,18 +346,6 @@ builder_wine:
         command: wine python -m wheel convert -d {{ builder_wine.wheels }} {{ builder_wine.src }}/py2exe-0.6.9.win32-py2.7.exe
         user: {{ builder_wine.user }}
         creates: {{ builder_wine.wheels }}/py2exe-0.6.9-cp27-none-win32.whl
-
-    - Execute:
-        name: download-pycrypto
-        command: curl -o {{ builder_wine.src }}/pycrypto-2.6.win32-py2.7.exe http://www.voidspace.org.uk/downloads/pycrypto26/pycrypto-2.6.win32-py2.7.exe
-        creates: {{ builder_wine.src }}/pycrypto-2.6.win32-py2.7.exe
-        user: {{ builder_wine.user }}
-
-    - Execute:
-        name: wheel-convert-pycrypto
-        command: wine python -m wheel convert -d {{ builder_wine.wheels }} {{ builder_wine.src }}/pycrypto-2.6.win32-py2.7.exe
-        user: {{ builder_wine.user }}
-        creates: {{ builder_wine.wheels }}/pycrypto-2.6-cp27-none-win32.whl
 
     - Directory:
         name: {{ builder_wine.home }}/pip
