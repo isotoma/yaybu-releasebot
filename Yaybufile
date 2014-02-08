@@ -7,169 +7,189 @@ yaybu:
 master:
   resources:
     - Group:
-        name: buildbot_master
+        name: rb_master
 
     - User:
-        name: buildbot_master
-        group: buildbot_master
+        name: rb_master
+        group: rb_master
 
     - Directory:
-        name: /var/local/releasebot_master
-        owner: buildbot_master
-        group: buildbot_master
+        name: /var/local/releasebot/master
+        owner: rb_master
+        group: rb_master
 
     - Execute:
-        name: create_virtualenv_master
-        user: buildbot_master
+        name: rb-master-create-virtualenv
+        user: rb_master
         commands:
           - curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.10.1.tar.gz
           - tar xvfz virtualenv-1.10.1.tar.gz
-          - python virtualenv-1.10.1/virtualenv.py /var/local/releasebot_master
+          - python virtualenv-1.10.1/virtualenv.py /var/local/releasebot/master
           - rm -rf virtualenv-1.10.1
-        creates: /var/local/releasebot_master/bin/python
+        creates: /var/local/releasebot/master/bin/python
         cwd: /tmp
 
     - File:
-        name: /var/local/releasebot_master/requirements.txt
+        name: /var/local/releasebot/master/requirements.txt
         source: master/requirements.txt
 
     - Execute:
-        name: pip-install-master
-        command: /var/local/releasebot_master/bin/pip install -r /var/local/releasebot_master/requirements.txt
-        user: buildbot_master
+        name: rb-master-pip-install
+        command: /var/local/releasebot/master/bin/pip install -r /var/local/releasebot/master/requirements.txt
+        user: rb_master
         policy:
           execute:
             - when: apply
-              on: File[/var/local/releasebot_master/requirements.txt]
+              on: File[/var/local/releasebot/master/requirements.txt]
 
     - Directory:
-        name: /var/local/releasebot_master/instance
-        owner: buildbot_master
-        group: buildbot_master
+        name: /var/local/releasebot/master/instance
+        owner: rb_master
+        group: rb_master
 
     - Execute:
         name: create-buildmaster
-        command: /var/local/releasebot_master/bin/buildbot create-master /var/local/releasebot_master/instance
-        creates: /var/local/releasebot_master/instance/buildbot.tac
+        command: /var/local/releasebot/master/bin/buildbot create-master /var/local/releasebot/master/instance
+        creates: /var/local/releasebot/master/instance/buildbot.tac
+        user: rb_master
 
     - File:
-        name: /var/local/releasebot_master/instance/master.cfg
+        name: /var/local/releasebot/master/instance/master.cfg
         source: master/master.cfg
 
     - Execute:
         name: buildbot-check
-        command: /var/local/releasebot_master/bin/buildbot check /var/local/releasebot_master/instance
-        user: buildbot_master
+        command: /var/local/releasebot/master/bin/buildbot checkconfig /var/local/releasebot/master/instance
+        user: rb_master
         policy:
           execute:
             - when: execute
-              on: Execute[pip-install]
+              on: Execute[rb-master-pip-install]
             - when: apply
-              on: File[/var/local/releasebot_master/instance/master.cfg]
+              on: File[/var/local/releasebot/master/instance/master.cfg]
 
     - Execute:
         name: buildbot-upgrade
-        command: /var/local/releasebot_master/bin/buildbot upgrade-master /var/local/releasebot_master/instance
-        user: buildbot_master
+        command: /var/local/releasebot/master/bin/buildbot upgrade-master /var/local/releasebot/master/instance
+        user: rb_master
         policy:
           execute:
             - when: execute
-              on: Execute[pip-install-master]
+              on: Execute[rb-master-pip-install]
 
     - File:
-        name: /etc/init/releasebot_master.conf
+        name: /etc/init/rb_master.conf
         source: master/upstart.conf
 
     - Execute:
-        name: bounce-master
+        name: rb-master-bounce
         commands:
-          - stop releasebot_master || true
-          - start releasebot_master
+          - sh -c "stop rb_master || true"
+          - start rb_master
         policy:
           execute:
            - when: execute
-             on: Execute[pip-install]
+             on: Execute[rb-master-pip-install]
            - when: apply
-             on: File[/var/local/releasebot_master/instance/master.cfg]
+             on: File[/var/local/releasebot/master/instance/master.cfg]
            - when: apply
-             on: File[/etc/init/releasebot_master.conf]
+             on: File[/etc/init/rb_master.conf]
 
-builder_deb:
-  resources:
+
+macro BuildbotSlave:
     - Group:
-        name: buildbot_slave
+        name: rb_{{ name }}
 
     - User:
-        name: buildbot_slave
-        group: buildbot_slave
+        name: rb_{{ name }}
+        group: rb_{{ name }}
+        home: /var/local/releasebot/{{ name }}
 
     - Directory:
-        name: /var/local/releasebot_slave
-        owner: buildbot_slave
-        group: buildbot_slave
+        name: /var/local/releasebot/{{ name }}
+        owner: rb_{{ name }}
+        group: rb_{{ name }}
 
     - Execute:
-        name: create_virtualenv
-        user: buildbot_slave
+        name: rb-{{ name }}-create-virtualenv
+        user: rb_{{ name }}
         commands:
           - curl -O https://pypi.python.org/packages/source/v/virtualenv/virtualenv-1.10.1.tar.gz
           - tar xvfz virtualenv-1.10.1.tar.gz
-          - python virtualenv-1.10.1/virtualenv.py /var/local/releasebot_slave
+          - python virtualenv-1.10.1/virtualenv.py /var/local/releasebot/{{ name }}
           - rm -rf virtualenv-1.10.1
-        creates: /var/local/releasebot_slave/bin/python
-        cwd: /tmp
+        creates: /var/local/releasebot/{{ name }}/bin/python
+        cwd: /var/local/releasebot/{{ name }}
 
     - File:
-        name: /var/local/releasebot_slave/requirements.txt
+        name: /var/local/releasebot/{{ name }}/requirements.txt
         source: slave/requirements.txt
+        # args: {{ extra_requirements or {} }}
 
     - Execute:
-        name: pip-install
-        command: /var/local/releasebot_slave/bin/pip install -r /var/local/releasebot_slave/requirements.txt
-        user: buildbot_slave
+        name: rb-{{ name }}-pip-install
+        command: /var/local/releasebot/{{ name }}/bin/pip install -r /var/local/releasebot/{{ name }}/requirements.txt
+        user: rb_{{ name }}
         policy:
           execute:
             - when: apply
-              on: File[/var/local/releasebot_slave/requirements.txt]
+              on: File[/var/local/releasebot/{{ name }}/requirements.txt]
 
     - Directory:
-        name: /var/local/releasebot_slave/instance
-        owner: buildbot_slave
-        group: buildbot_slave
+        name: /var/local/releasebot/{{ name }}/instance
+        owner: rb_{{ name }}
+        group: rb_{{ name }}
 
     - Execute:
-        name: create-buildslave
-        command: /var/local/releasebot_slave/bin/buildslave -r /var/local/releasebot_slave/instance localhost:9989 deb_slave pass
-        creates: /var/local/releasebot_slave/instance/buildbot.tac
-        user: buildbot_slave
+        name: rb-{{ name }}-create-buildslave
+        command: /var/local/releasebot/{{ name }}/bin/buildslave create-slave -r /var/local/releasebot/{{ name }}/instance localhost:9989 {{ name }} {{ password }}
+        creates: /var/local/releasebot/{{ name }}/instance/buildbot.tac
+        user: rb_{{ name }}
 
     - File:
-        name: /etc/init/releasebot_slave.conf
+        name: /etc/init/rb_{{ name }}.conf
         source: slave/upstart.conf
+        args:
+          uid: rb_{{ name }}
+          gid: rb_{{ name }}
+          name: {{ name }}
 
     - Execute:
-        name: bounce-slave
+        name: rb-{{ name }}-bounce
         commands:
-          - stop releasebot_slave || true
-          - start releasebot_slave
+          - sh -c "stop rb_{{ name }} || true"
+          - start rb_{{ name }}
         policy:
           execute:
            - when: execute
-             on: Execute[pip-install]
+             on: Execute[rb-{{ name }}-pip-install]
            - when: apply
-             on: File[/etc/init/releasebot_slave.conf]
+             on: File[/etc/init/rb_{{ name }}.conf]
+
+
+builder_deb:
+  resources:
+    call BuildbotSlave:
+      name: debian
+      password: pass
 
 
 builder_wine:
-  user: ubuntu
-  c_drive: /home/ubuntu/.wine/drive_c
-  home: /home/ubuntu/.wine/drive_c/users/ubuntu
-  wheels: /home/ubuntu/.wine/drive_c/wheels
-  src: /home/ubuntu/src
+  user: rb_wine
+  c_drive: /var/local/releasebot/wine/.wine/drive_c
+  home: /var/local/releasebot/wine/.wine/drive_c/users/rb_wine
+  wheels: /var/local/releasebot/wine/.wine/drive_c/wheels
+  src: /var/local/releasebot/wine/src
+  wineprefix: /var/local/releasebot/wine/.wine
 
   resources:
+    call BuildbotSlave:
+      name: wine
+      password: pass
+
     - Package:
-        name: python-software-properties
+        - name: python-software-properties
+        - name: debconf-utils
 
     - Execute:
         name: add-apt-repository-ubuntu-wine
@@ -178,19 +198,26 @@ builder_wine:
           - apt-get update
         creates: /etc/apt/sources.list.d/ubuntu-wine-ppa-precise.list
 
-    # FIXME: This needs a guard condition
-    #- Execute:
-    #    name: agree
-    #    command: echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+    - Execute:
+        name: debconf/msttcorefonts/accepted-mscorefonts-urla
+        command: echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+        unless: debconf-get-selections | grep accepted-mscorefonts-eula | grep true
 
     - Package:
         - name: wine1.6
         - name: xvfb
         - name: p7zip-full
-        - name: curl
 
     - Directory:
         name: {{ builder_wine.src }}
+        owner: {{ builder_wine.user }}
+
+    - Directory:
+        name: {{ builder_wine.wineprefix }}
+        owner: {{ builder_wine.user }}
+
+    - Directory:
+        name: {{ builder_wine.wineprefix }}/drive_c
         owner: {{ builder_wine.user }}
 
     - Directory:
@@ -248,7 +275,7 @@ builder_wine:
 
     - Execute:
         name: python27-pexports
-        command: wine pexports c:\\windows\\system32\\python27.dll > {{ builder_wine.c_drive }}/Python27/libs/python27.def
+        command: sh -c "wine pexports c:/windows/system32/python27.dll > {{ builder_wine.c_drive }}/Python27/libs/python27.def"
         creates: {{ builder_wine.c_drive }}/Python27/libs/python27.def
         user: {{ builder_wine.user }}
 
@@ -321,18 +348,34 @@ builder_wine:
         user: {{ builder_wine.user }}
         creates: {{ builder_wine.wheels }}/pycrypto-2.6-cp27-none-win32.whl
 
+    - Directory:
+        name: {{ builder_wine.home }}/pip
+        owner: {{ builder_wine.user }}
+
     - File:
         name: {{ builder_wine.home }}/pip/pip.ini
         source: builder_wine/pip.ini
         owner: {{ builder_wine.user }}
 
 
-new Provisioner as releasebox1:
-  server:
-    fqdn: 192.168.244.131
+new Provisioner as releasebot:
+  new Compute as server:
+    name: releasebot
+    driver: VMWARE
+    image: http://yaybu.com/library/ubuntu-12.04.3-server-amd64.zip
     user: ubuntu
     password: password
+
+  resources:
+    - Package:
+        - name: curl
+        - name: vim-nox
+        - name: python-dev
+
+    - Directory:
+        name: /var/local/releasebot
 
   extend resources: {{ master.resources }}
   extend resources: {{ builder_deb.resources }}
   extend resources: {{ builder_wine.resources }}
+
