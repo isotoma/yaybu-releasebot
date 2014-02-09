@@ -190,6 +190,7 @@ builder_wine:
     - Package:
         - name: python-software-properties
         - name: debconf-utils
+        - name: zip
 
     - Execute:
         name: add-apt-repository-ubuntu-wine
