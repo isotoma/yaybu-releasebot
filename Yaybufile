@@ -57,6 +57,16 @@ master:
         name: /var/local/releasebot/master/instance/master.cfg
         source: master/master.cfg
 
+    - Directory:
+        name: /var/local/releasebot/master/etc
+
+    - File:
+        name: /var/local/releasebot/master/etc/settings.json
+        renderer: json
+        args:
+          debs:
+            archives: {{ builder_deb.archives }}
+
     - Execute:
         name: buildbot-check
         command: /var/local/releasebot/master/bin/buildbot checkconfig /var/local/releasebot/master/instance
@@ -67,6 +77,8 @@ master:
               on: Execute[rb-master-pip-install]
             - when: apply
               on: File[/var/local/releasebot/master/instance/master.cfg]
+            - when: apply
+              on: File[/var/local/releasebot/master/etc/settings.json]
 
     - Execute:
         name: buildbot-upgrade
@@ -92,6 +104,8 @@ master:
              on: Execute[rb-master-pip-install]
            - when: apply
              on: File[/var/local/releasebot/master/instance/master.cfg]
+           - when: apply
+             on: File[/var/local/releasebot/master/etc/settings.json]
            - when: apply
              on: File[/etc/init/rb_master.conf]
 
@@ -170,6 +184,7 @@ macro BuildbotSlave:
 builder_deb:
   archives:
     - name: raspbian
+      root: /var/local/releasebot/debian/archives/raspbian
       mirror: http://mirror.netcologne.de/raspbian/raspbian/
       components:
        - main
@@ -180,6 +195,7 @@ builder_deb:
 
     - name: ubuntu
       mirror: http://mirrors.kernel.org/ubuntu/
+      root: /var/local/releasebot/debian/archives/ubuntu
       components:
         - main
         - restricted
@@ -197,6 +213,7 @@ builder_deb:
 
     - name: debian
       mirror: http://ftp.us.debian.org/debian/
+      root: /var/local/releasebot/debian/archives/debian
       components:
         - main
         - contrib
