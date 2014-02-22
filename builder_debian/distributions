@@ -1,0 +1,10 @@
+{% for series in archive.series %}
+Suite: {{ series.name  }}
+Codename: {{ series.name }}
+Architectures: {% for arch in series.archs %}{{ arch }} {% endfor %}sources
+Components: main
+DebIndices: Packages Release . .gz .bz2
+DscIndices: Sources Release . .gz .bz2
+SignWith: default
+
+{% endfor %}

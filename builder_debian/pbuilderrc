@@ -1,0 +1,17 @@
+BASETGZ="{{ root_dir }}/base.tgz"
+DISTRIBUTION="{{ series.name }}"
+ARCH="{{ arch }}"
+BUILDRESULT="{{ root_dir }}/result"
+APTCACHE="{{ root_dir }}/aptcache"
+BUILDPLACE="{{ root_dir }}/build"
+HOOKDIR="{{ root_dir }}/hooks"
+
+MIRRORSITE="{{ archive.mirror }}"
+COMPONENTS="{% for c in archive.components %}{{ c }} {% endfor -%}"
+
+{% if archive.name == "raspbian" %}
+DEBOOTSTRAPOPTS=( '--variant=buildd' '--no-check-gpg' )
+DEBOOTSTRAP=qemu-debootstrap
+ARCHITECTURE=armhf
+DEBBUILDOPTS="-j1"
+{% endif %}

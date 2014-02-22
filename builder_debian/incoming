@@ -1,0 +1,5 @@
+Name: incoming
+IncomingDir: {{ root_dir }}/incoming
+TempDir: {{ root_dir }}/tmp
+LogDir: {{ root_dir }}/log
+Allow: {{ allow }}
