@@ -168,11 +168,121 @@ macro BuildbotSlave:
 
 
 builder_deb:
+  archives:
+    - name: raspbian
+      mirror: http://mirror.netcologne.de/raspbian/raspbian/
+      components:
+       - main
+      series:
+        - name: stable
+          archs:
+            - armhf
+
+    - name: ubuntu
+      mirror: http://mirrors.kernel.org/ubuntu/
+      components:
+        - main
+        - restricted
+        - universe
+        - multiverse
+      series:
+        - name: lucid
+          archs:
+            - i386
+            - amd64
+        - name: precise
+          archs:
+            - i386
+            - amd64
+
+    - name: debian
+      mirror: http://ftp.us.debian.org/debian/
+      components:
+        - main
+        - contrib
+        - non-free
+      series: []
+
   resources:
     call BuildbotSlave:
       name: debian
       password: pass
 
+    - Package:
+       - name: pbuilder
+       - name: qemu-user-static
+       - name: reprepro
+
+    # Set up some reprepro repositories
+    - Directory:
+        name: /var/local/releasebot/debian/archives
+        owner: rb_debian
+
+    for archive in builder_deb.archives:
+       set root_dir = "/var/local/releasebot/debian/archives/" + archive.name
+
+       - Directory:
+           name: {{ root_dir }}
+           owner: rb_debian
+
+       for n in ["conf", "incoming", "log", "tmp"]:
+         - Directory:
+             name: {{ root_dir }}/{{ n }}
+             owner: rb_debian
+
+       - File:
+           name: {{ root_dir }}/conf/distributions
+           source: builder_debian/distributions
+           args:
+             archive: {{ archive }}
+           mode: 0755
+
+       - File:
+           name: {{ root_dir }}/conf/incoming
+           source: builder_debian/incoming
+           args:
+             root_dir: {{ root_dir }}
+             allow: *
+           mode: 0755
+
+
+    # Setup some pbuilder environments
+    - Directory:
+        name: /var/local/releasebot/debian/pbuilder
+        owner: rb_debian
+
+    for archive in builder_deb.archives:
+      for series in archive.series:
+        for arch in series.archs:
+          set root_dir = "/var/local/releasebot/debian/pbuilder/" + archive.name + "-" + series.name + "-" + arch
+
+          - Directory:
+              name: {{ root_dir }}
+              owner: rb_debian
+
+          for n in ["result", "aptcache", "build", "hooks"]:
+            - Directory:
+                name: {{ root_dir }}/{{ n }}
+                owner: rb_debian
+
+          - File: 
+              name: {{ root_dir }}/config
+              source: builder_debian/pbuilderrc
+              args:
+                root_dir: {{ root_dir }}
+                archive: {{ archive }}
+                series: {{ series }}
+                arch: {{ arch }}
+
+          - File: 
+              name: {{ root_dir }}/hooks/A05install_dh_virtualenv
+              source: builder_debian/A05install_dh_virtualenv
+              mode: 0755
+
+          - Execute:
+              name: pbuilder-create-{{ archive.name }}-{{ series.name }}-{{ arch }}
+              command: pbuilder --create --configfile {{ root_dir }}/config
+              creates: {{ root_dir }}/base.tgz
 
 builder_wine:
   user: rb_wine
