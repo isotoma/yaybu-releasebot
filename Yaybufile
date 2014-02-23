@@ -4,6 +4,11 @@ yaybu:
     - .
 
 
+secrets:
+  assets_access_key: DUMMY
+  assets_secret_key: DUMMY
+
+
 master:
   resources:
     - Group:
@@ -181,6 +186,16 @@ macro BuildbotSlave:
              on: Execute[rb-{{ name }}-pip-install]
            - when: apply
              on: File[/etc/init/rb_{{ name }}.conf]
+
+    - File:
+        name: /var/local/releasebot/{{ name }}/.s3cmd.cfg
+        source: slave/s3cmd.cfg
+        args:
+          access_key: {{ secrets.assets_access_key }}
+          secret_key: {{ secrets.assets_secret_key }}
+        owner: rb_{{ name }}
+        group: rb_{{ name }}
+        mode: 0600
 
 
 builder_deb:
