@@ -1,4 +1,4 @@
-apt-get install python-setuptools
+apt-get install python-setuptools -y
 easy_install virtualenv
 easy_install https://github.com/yaybu/debhelper/archive/master.zip
 easy_install https://github.com/Jc2k/dh-virtualenv/archive/cleanup-symlinks.zip

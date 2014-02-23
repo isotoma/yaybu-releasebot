@@ -65,6 +65,7 @@ master:
         renderer: json
         args:
           debs:
+            root: {{ builder_deb.root }}
             archives: {{ builder_deb.archives }}
 
     - Execute:
@@ -182,6 +183,7 @@ macro BuildbotSlave:
 
 
 builder_deb:
+  root: /var/local/releasebot/debian
   archives:
     - name: raspbian
       root: /var/local/releasebot/debian/archives/raspbian
@@ -229,6 +231,11 @@ builder_deb:
        - name: pbuilder
        - name: qemu-user-static
        - name: reprepro
+
+    - File:
+        name: /etc/sudoers.d/rb_debian_pdebuild
+        source: builder_debian/sudoers
+        mode: 0440
 
     # Set up some reprepro repositories
     - Directory:
@@ -294,6 +301,16 @@ builder_deb:
           - File: 
               name: {{ root_dir }}/hooks/A05install_dh_virtualenv
               source: builder_debian/A05install_dh_virtualenv
+              mode: 0755
+
+          #- File: 
+          #    name: {{ root_dir }}/hooks/D10apt-get-update
+          #    source: builder_debian/D10apt-get-update
+          #    mode: 0755
+
+          - File: 
+              name: {{ root_dir }}/hooks/F10apt-get-update
+              source: builder_debian/D10apt-get-update
               mode: 0755
 
           - Execute:
