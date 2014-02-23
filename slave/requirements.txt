@@ -2,7 +2,12 @@ Twisted==13.1.0
 buildbot-slave==0.8.7p1
 zope.interface==4.0.5
 PyYAML==3.10
-termcolor==1.1.0
+wsgiref==0.1.2
+
+# For building
 travis-solo==0.0.9
 virtualenv==1.10.1
-wsgiref==0.1.2
+termcolor==1.1.0
+
+# For syncing built assets to s3
+s3cmd==1.0.1
