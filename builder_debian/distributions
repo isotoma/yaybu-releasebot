@@ -5,6 +5,8 @@ Architectures: {% for arch in series.archs %}{{ arch }} {% endfor %}sources
 Components: main
 DebIndices: Packages Release . .gz .bz2
 DscIndices: Sources Release . .gz .bz2
-SignWith: default
+% if sign_with
+SignWith: {{ sign_with }}
+% endif
 
 {% endfor %}

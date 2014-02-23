@@ -83,8 +83,9 @@ master:
 
     - Execute:
         name: buildbot-upgrade
-        command: /var/local/releasebot/master/bin/buildbot upgrade-master /var/local/releasebot/master/instance
-        user: rb_master
+        commands:
+          - stop rb_master
+          - sudo -u rb_master /var/local/releasebot/master/bin/buildbot upgrade-master /var/local/releasebot/master/instance
         policy:
           execute:
             - when: execute
@@ -266,7 +267,7 @@ builder_deb:
            source: builder_debian/incoming
            args:
              root_dir: {{ root_dir }}
-             allow: *
+             archive: {{ archive }}
            mode: 0755
 
 
