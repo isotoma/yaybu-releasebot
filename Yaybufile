@@ -156,6 +156,13 @@ macro BuildbotSlave:
             - when: apply
               on: File[/var/local/releasebot/{{ name }}/requirements.txt]
 
+    - File:
+        name: /var/local/releasebot/{{ name }}/bin/attach_to_release
+        source: slave/attach_to_release
+        args:
+          root: /var/local/releasebot/{{ name }}
+        mode: 0755
+
     - Directory:
         name: /var/local/releasebot/{{ name }}/instance
         owner: rb_{{ name }}

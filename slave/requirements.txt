@@ -11,3 +11,8 @@ termcolor==1.1.0
 
 # For syncing built assets to s3
 s3cmd==1.0.1
+
+# For uploading built assets to GitHub releases
+github3.py==0.8.2
+requests==2.2.1
+uritemplate.py==0.3.0

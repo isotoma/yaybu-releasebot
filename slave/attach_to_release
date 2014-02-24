@@ -1,0 +1,56 @@
+#! {{ root }}/bin/python
+
+from github3 import login
+import sys
+
+repo_id = sys.argv[1]
+release_id = sys.argv[2]
+asset_id = sys.argv[3]
+asset_path = sys.argv[4]
+
+# FIXME: Need a token and id
+
+
+print "* Attempting to authenticate with GitHub"
+gh = login(token=token)
+auth = gh.authorization(id)
+auth.update(add_scopes=[], rm_scopes=[])
+
+
+print "* Getting repository '%s'" % repo_id
+repo = gh.repository(repo_id.split("/", 1))
+
+
+print "* Looking for release named or tagged '%s'" % release_id
+for r in repo.iter_releases():
+    if r.tag_name == release_id or r.name == release_id:
+        release = r
+        break
+else:
+    raise SystemExit("Unable to find a release matching '%s'" % release_id)
+
+
+print "* Checking to see if asset with name or label '%s' already exists" % asset_id
+for a in release.iter_assets():
+    if a.name == asset_id or a.label == asset_id:
+        print "* Deleting existing asset"
+
+        # The API seemes to be missing a.delete()
+        #a.delete()
+        url = a._api
+        a._boolean(
+            a._delete(url, headers=a.CUSTOM_HEADERS),
+            204,
+            404
+        )
+
+
+print "* Attachimg asset '%s' to release '%s' of '%s'" % (asset_id, release_id, repo_id)
+release.upload_asset(
+    content_type='',
+    name=asset_id,
+    asset=open(asset_path, 'rb'),
+)
+
+
+print "Done."
