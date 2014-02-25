@@ -7,6 +7,9 @@ APTCACHE="{{ root_dir }}/aptcache"
 BUILDPLACE="{{ root_dir }}/build"
 HOOKDIR="{{ root_dir }}/hooks"
 
+# We cache wheels in the builder directory, which why bindmount into play
+BINDMOUNTS="{{ root_dir }}/wheels"
+
 MIRRORSITE="{{ archive.mirror }}"
 COMPONENTS="{% for c in archive.components %}{{ c }} {% endfor -%}"
 
@@ -15,3 +18,4 @@ DEBOOTSTRAPOPTS=( '--variant=buildd' '--no-check-gpg' )
 DEBOOTSTRAP=qemu-debootstrap
 DEBBUILDOPTS="-j1"
 {% endif %}
+

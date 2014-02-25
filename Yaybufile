@@ -307,7 +307,7 @@ builder_deb:
               name: {{ root_dir }}
               owner: rb_debian
 
-          for n in ["result", "aptcache", "build", "hooks"]:
+          for n in ["result", "aptcache", "build", "hooks", "wheels", "sdists"]:
             - Directory:
                 name: {{ root_dir }}/{{ n }}
                 owner: rb_debian
@@ -324,12 +324,9 @@ builder_deb:
           - File: 
               name: {{ root_dir }}/hooks/A05install_dh_virtualenv
               source: builder_debian/A05install_dh_virtualenv
+              args:
+                root_dir: {{ root_dir }}
               mode: 0755
-
-          #- File: 
-          #    name: {{ root_dir }}/hooks/D10apt-get-update
-          #    source: builder_debian/D10apt-get-update
-          #    mode: 0755
 
           - File: 
               name: {{ root_dir }}/hooks/F10apt-get-update
@@ -346,6 +343,7 @@ builder_wine:
   c_drive: /var/local/releasebot/wine/.wine/drive_c
   home: /var/local/releasebot/wine/.wine/drive_c/users/rb_wine
   wheels: /var/local/releasebot/wine/.wine/drive_c/wheels
+  sdists: /var/local/releasebot/wine/.wine/drive_c/sdists
   src: /var/local/releasebot/wine/src
   wineprefix: /var/local/releasebot/wine/.wine
 
@@ -390,6 +388,10 @@ builder_wine:
 
     - Directory:
         name: {{ builder_wine.wheels }}
+        owner: {{ builder_wine.user }}
+
+    - Directory:
+        name: {{ builder_wine.sdists }}
         owner: {{ builder_wine.user }}
 
     - Execute:

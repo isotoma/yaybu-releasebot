@@ -9,6 +9,10 @@ travis-solo==0.0.9
 virtualenv==1.10.1
 termcolor==1.1.0
 
+# For reducing build time with wheels
+wheel == 0.22.0
+pip == 1.5.4
+
 # For syncing built assets to s3
 s3cmd==1.0.1
 
