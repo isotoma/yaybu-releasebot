@@ -1,5 +1,5 @@
 apt-get install python-setuptools -y
-easy_install virtualenv
+easy_install -U virtualenv pip wheel setuptools
 easy_install https://github.com/yaybu/debhelper/archive/master.zip
 easy_install https://github.com/Jc2k/dh-virtualenv/archive/cleanup-symlinks.zip
 wget --no-check-certificate https://raw.github.com/Jc2k/dh-virtualenv/cleanup-symlinks/debhelper/python_virtualenv.pm -O /usr/share/perl5/Debian/Debhelper/Sequence/python_virtualenv.pm
