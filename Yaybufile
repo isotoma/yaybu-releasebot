@@ -47,6 +47,14 @@ master:
             - when: apply
               on: File[/var/local/releasebot/master/requirements.txt]
 
+    #FIXME: The console is 0.8.8 isn't multi-code-base aware
+    # This bumps it to ed8d49e2176a4f299a88805dced3b6fdb4c3c1d9
+    # This has a few multi-code patches applied
+    - File:
+        name: /var/local/releasebot/master/lib/python2.7/site-packages/buildbot/status/web/console.py
+        source: master/console.py
+        owner: rb_master
+
     - Directory:
         name: /var/local/releasebot/master/instance
         owner: rb_master
