@@ -1,0 +1,24 @@
+set -e
+
+PKGNAMES=$(cd $BUILDRESULT && ls -1 *.deb | sed 's/_.*$//')
+
+echo "Found:
+echo $PKGNAMES
+
+
+echo "Installing the new package"
+dpkg -i $BUILDRESULT/*.deb
+
+
+echo "Running selftest"
+cd /
+/usr/bin/yaybu selftest
+
+
+echo "Testing package removal"
+dpkg --remove $PKGNAMES
+
+
+echo "Testing package purge"
+dpkg -i $BUILDRESULT/*.deb
+dpkg --purge $PKGNAMES
