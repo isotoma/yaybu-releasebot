@@ -337,6 +337,11 @@ builder_deb:
               mode: 0755
 
           - File: 
+              name: {{ root_dir }}/hooks/B52test_pkg
+              source: builder_debian/B52test_pkg
+              mode: 0755
+
+          - File: 
               name: {{ root_dir }}/hooks/F10apt-get-update
               source: builder_debian/D10apt-get-update
               mode: 0755
