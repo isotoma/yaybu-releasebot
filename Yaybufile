@@ -328,6 +328,7 @@ builder_deb:
                 archive: {{ archive }}
                 series: {{ series }}
                 arch: {{ arch }}
+                src_dir: /var/local/releasebot/debian/instance/{{ archive.name }}_{{ series.name }}_{{ arch }}/build
 
           - File: 
               name: {{ root_dir }}/hooks/A05install_dh_virtualenv
@@ -339,6 +340,11 @@ builder_deb:
           - File: 
               name: {{ root_dir }}/hooks/B52test_pkg
               source: builder_debian/B52test_pkg
+              mode: 0755
+
+          - File: 
+              name: {{ root_dir }}/hooks/D00clean
+              source: builder_debian/D00clean
               mode: 0755
 
           - File: 

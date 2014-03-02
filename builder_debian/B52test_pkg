@@ -1,13 +1,13 @@
 set -e
 
-PKGNAMES=$(cd $BUILDRESULT && ls -1 *.deb | sed 's/_.*$//')
+PKGNAMES=$(cd $SRCDIR/../ && ls -1 *.deb | sed 's/_.*$//')
 
-echo "Found:
+echo "Found:"
 echo $PKGNAMES
 
 
 echo "Installing the new package"
-dpkg -i $BUILDRESULT/*.deb
+dpkg -i $SRCDIR/../*.deb
 
 
 echo "Running selftest"
@@ -20,5 +20,5 @@ dpkg --remove $PKGNAMES
 
 
 echo "Testing package purge"
-dpkg -i $BUILDRESULT/*.deb
+dpkg -i $SRCDIR/../*.deb
 dpkg --purge $PKGNAMES

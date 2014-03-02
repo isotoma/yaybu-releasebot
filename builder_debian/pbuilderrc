@@ -8,7 +8,7 @@ BUILDPLACE="{{ root_dir }}/build"
 HOOKDIR="{{ root_dir }}/hooks"
 
 # We cache wheels in the builder directory, which why bindmount into play
-BINDMOUNTS="{{ root_dir }}/wheels"
+BINDMOUNTS="{{ root_dir }}"
 
 MIRRORSITE="{{ archive.mirror }}"
 COMPONENTS="{% for c in archive.components %}{{ c }} {% endfor -%}"
@@ -19,3 +19,5 @@ DEBOOTSTRAP=qemu-debootstrap
 DEBBUILDOPTS="-j1"
 {% endif %}
 
+SRCDIR="{{ src_dir }}"
+export SRCDIR;
