@@ -97,7 +97,7 @@ master:
     - Execute:
         name: buildbot-upgrade
         commands:
-          - stop rb_master
+          - sh -c "stop rb_master | true"
           - sudo -u rb_master /var/local/releasebot/master/bin/buildbot upgrade-master /var/local/releasebot/master/instance
         policy:
           execute:
@@ -385,7 +385,7 @@ builder_wine:
 
     - Execute:
         name: debconf/msttcorefonts/accepted-mscorefonts-urla
-        command: echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections
+        command: sh -c "echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true | debconf-set-selections"
         unless: debconf-get-selections | grep accepted-mscorefonts-eula | grep true
 
     - Package:
@@ -415,13 +415,15 @@ builder_wine:
 
     - Execute:
         name: download-python27
-        command: curl -o {{ builder_wine.src }}/python-2.7.5.msi http://www.python.org/ftp/python/2.7.5/python-2.7.5.msi
-        creates: {{ builder_wine.src }}/python-2.7.5.msi
+        command: curl -o {{ builder_wine.src }}/python-2.7.6.msi http://legacy.python.org/ftp//python/2.7.6/python-2.7.6.msi
+        creates: {{ builder_wine.src }}/python-2.7.6.msi
         user: {{ builder_wine.user }}
 
+    # If this stops working, check to see if the download is valid
+    # If a new python release is made you might end up downloading a 302 redirect..
     - Execute:
         name: install-python
-        command: wine msiexec /i {{ builder_wine.src }}/python-2.7.5.msi /qn TARGETDIR=C:\\Python27 ALLUSERS=1
+        command: wine msiexec /i {{ builder_wine.src }}/python-2.7.6.msi /qn TARGETDIR=C:\\Python27 ALLUSERS=1
         creates: {{ builder_wine.c_drive }}/Python27/python.exe
         user: {{ builder_wine.user }}
 
@@ -475,7 +477,7 @@ builder_wine:
 
     - Execute:
         name: python27-pexports
-        command: sh -c "wine pexports c:/windows/system32/python27.dll > {{ builder_wine.c_drive }}/Python27/libs/python27.def"
+        command: sh -c "wine pexports {{ builder_wine.c_drive }}/windows/system32/python27.dll > {{ builder_wine.c_drive }}/Python27/libs/python27.def"
         creates: {{ builder_wine.c_drive }}/Python27/libs/python27.def
         user: {{ builder_wine.user }}
 
